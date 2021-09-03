@@ -101,7 +101,7 @@
 # include <string.h>
 # include <syscall.h>
 # include <sys/sysinfo.h>
-//# include <gnu/libc-version.h>
+# include <gnu/libc-version.h>
 # include <sys/ipc.h>
 # include <sys/shm.h>
 # include <link.h>
@@ -598,20 +598,22 @@ void os::Linux::hotspot_sigmask(Thread* thread) {
 
 void os::Linux::libpthread_init() {
   // Save glibc and pthread version strings.
+#if !defined(_CS_GNU_LIBC_VERSION) || \
+    !defined(_CS_GNU_LIBPTHREAD_VERSION)
+  #error "glibc too old (< 2.3.2)"
+#endif
 
- // size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, 0);
- // assert(n > 0, "cannot retrieve glibc version");
- // char *str = (char *)malloc(n, mtInternal);
- // confstr(_CS_GNU_LIBC_VERSION, str, n);
- // os::Linux::set_glibc_version(str);
+  size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, 0);
+  assert(n > 0, "cannot retrieve glibc version");
+  char *str = (char *)malloc(n, mtInternal);
+  confstr(_CS_GNU_LIBC_VERSION, str, n);
+  os::Linux::set_glibc_version(str);
 
- // n = confstr(_CS_GNU_LIBPTHREAD_VERSION, NULL, 0);
- // assert(n > 0, "cannot retrieve pthread version");
- // str = (char *)malloc(n, mtInternal);
- // confstr(_CS_GNU_LIBPTHREAD_VERSION, str, n);
- // os::Linux::set_libpthread_version(str);
-
-  os::Linux::set_libpthread_version("NPTL");
+  n = confstr(_CS_GNU_LIBPTHREAD_VERSION, NULL, 0);
+  assert(n > 0, "cannot retrieve pthread version");
+  str = (char *)malloc(n, mtInternal);
+  confstr(_CS_GNU_LIBPTHREAD_VERSION, str, n);
+  os::Linux::set_libpthread_version(str);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -3915,10 +3917,10 @@ void os::large_page_init() {
 static char* shmat_with_alignment(int shmid, size_t bytes, size_t alignment) {
   assert(is_aligned(bytes, alignment), "Must be divisible by the alignment");
 
-  //if (!is_aligned(alignment, SHMLBA)) {
-  //  assert(false, "Code below assumes that alignment is at least SHMLBA aligned");
-  //  return NULL;
-  //}
+  if (!is_aligned(alignment, SHMLBA)) {
+    assert(false, "Code below assumes that alignment is at least SHMLBA aligned");
+    return NULL;
+  }
 
   // To ensure that we get 'alignment' aligned memory from shmat,
   // we pre-reserve aligned virtual memory and then attach to that.
@@ -3951,11 +3953,10 @@ static char* shmat_with_alignment(int shmid, size_t bytes, size_t alignment) {
 }
 
 static char* shmat_at_address(int shmid, char* req_addr) {
-
-  //if (!is_aligned(req_addr, SHMLBA)) {
-  //  assert(false, "Requested address needs to be SHMLBA aligned");
-  //  return NULL;
-  //}
+  if (!is_aligned(req_addr, SHMLBA)) {
+    assert(false, "Requested address needs to be SHMLBA aligned");
+    return NULL;
+  }
 
   char* addr = (char*)shmat(shmid, req_addr, 0);
 
@@ -5956,43 +5957,7 @@ bool os::is_thread_cpu_time_supported() {
 // Linux doesn't yet have a (official) notion of processor sets,
 // so just return the system wide load average.
 int os::loadavg(double loadavg[], int nelem) {
-  //return ::getloadavg(loadavg, nelem);
-/*
- * Copyright (C) 2018 The Android Open Source Project
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
-
-  if (nelem < 0) return -1;
-  if (nelem > 3) nelem = 3;
-  struct sysinfo si;
-  if (sysinfo(&si) == -1) return -1;
-  for (int i = 0; i < nelem; ++i) {
-    loadavg[i] = static_cast<double>(si.loads[i]) / static_cast<double>(1 << SI_LOAD_SHIFT);
-  }
-  return nelem;
+  return ::getloadavg(loadavg, nelem);
 }
 
 void os::pause() {

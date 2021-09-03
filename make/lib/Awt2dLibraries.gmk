@@ -703,13 +703,13 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBFONTMANAGER, \
     LDFLAGS_unix := -L$(INSTALL_LIBRARIES_HERE), \
     LDFLAGS_aix := -Wl$(COMMA)-berok, \
     LIBS := $(BUILD_LIBFONTMANAGER_FONTLIB), \
-    LIBS_unix := -lawt -ljava -ljvm $(LIBM) $(LIBCXX), \
+    LIBS_unix := -lawt -lawt_xawt -ljava -ljvm -lc $(LIBM) $(LIBCXX), \
     LIBS_macosx := -lawt_lwawt, \
     LIBS_windows := $(WIN_JAVA_LIB) advapi32.lib user32.lib gdi32.lib \
         $(WIN_AWT_LIB), \
 ))
 
-$(BUILD_LIBFONTMANAGER): $(BUILD_LIBAWT)
+$(BUILD_LIBFONTMANAGER): $(BUILD_LIBAWT) $(BUILD_LIBAWT_XAWT)
 
 ifeq ($(USE_EXTERNAL_HARFBUZZ), false)
   $(BUILD_LIBFONTMANAGER): $(BUILD_LIBHARFBUZZ)
@@ -936,6 +936,7 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
       LDFLAGS_windows := -delayload:user32.dll, \
       LIBS := $(JDKLIB_LIBS) $(LIBSPLASHSCREEN_LIBS) $(LIBZ_LIBS) \
           $(GIFLIB_LIBS) $(LIBJPEG_LIBS) $(PNG_LIBS), \
+      LIBS_unix := -liconv, \
       LIBS_aix := -liconv, \
   ))
 

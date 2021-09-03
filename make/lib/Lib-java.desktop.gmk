@@ -78,7 +78,7 @@ ifneq ($(OPENJDK_TARGET_OS), aix)
 
   $(BUILD_LIBJSOUND): $(call FindLib, java.base, java)
 
-  TARGETS += $(BUILD_LIBJSOUND)
+  #TARGETS += $(BUILD_LIBJSOUND)
 
 endif
 

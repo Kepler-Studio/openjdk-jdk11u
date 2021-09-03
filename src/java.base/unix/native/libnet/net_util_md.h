@@ -26,6 +26,7 @@
 #ifndef NET_UTILS_MD_H
 #define NET_UTILS_MD_H
 
+#include <netinet/in.h>
 #include <netdb.h>
 #include <poll.h>
 #include <sys/socket.h>
